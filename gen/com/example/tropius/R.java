@@ -31,8 +31,8 @@ public final class R {
         public static final int connect_button=0x7f080011;
         public static final int connect_text=0x7f080012;
         public static final int error=0x7f080016;
+        public static final int fragment_container=0x7f080017;
         public static final int options=0x7f080001;
-        public static final int pager=0x7f080017;
         public static final int password=0x7f08000d;
         public static final int password_edit=0x7f08000f;
         public static final int password_text=0x7f08000e;
@@ -57,7 +57,8 @@ public final class R {
         public static final int activity_connect=0x7f030001;
         public static final int activity_control=0x7f030002;
         public static final int activity_entry=0x7f030003;
-        public static final int fragment_control=0x7f030004;
+        public static final int fragment_host_tab=0x7f030004;
+        public static final int fragment_lights_tab=0x7f030005;
     }
     public static final class menu {
         public static final int config=0x7f070000;

@@ -15,7 +15,11 @@ public class Connect extends Activity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_connect);
-		//while (!connect());
+		new Thread(new Runnable() {
+			public void run() {
+				while (!connect());
+			}
+		});
 	}
 
 	@Override
@@ -43,6 +47,8 @@ public class Connect extends Activity {
 		 * display an error message and set the configuration and
 		 * retry buttons to be visible.
 		 */
+		// Initialize the intent
+		Intent toControl = new Intent(this, Control.class);
 		// Start by getting the network data from the shared preferences file
         SharedPreferences data = this.getPreferences(Activity.MODE_PRIVATE);
         String publicIP = data.getString("Public IP", "0.0.0.0");
@@ -55,6 +61,7 @@ public class Connect extends Activity {
         	if (!pub.isReachable(5)) {
         		throw new UnknownHostException("Could not connect to given public IP");
         	}
+        	toControl.putExtra("IP", publicIP);
         } catch (Exception pubError) { // TODO This is terrible practice, don't do this
         	// If connecting to the public IP fails, try the private (Some routers are wonky)
         	try {
@@ -65,9 +72,9 @@ public class Connect extends Activity {
         	} catch (Exception privError) { // TODO still terrible
         		return false; // Can't connect, can't move on to next activity
         	}
+        	toControl.putExtra("IP", privateIP);
         }
-        // If we didn't return, the connection was successful. Procede to control
-        Intent toControl = new Intent(this, Control.class);
+        // If we didn't return, the connection was successful. Proceed to control
         startActivity(toControl);
         return true;
 	}
