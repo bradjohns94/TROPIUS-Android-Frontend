@@ -85,12 +85,13 @@ public class Config extends Activity {
 		}
 		if (valid) {
 			// Write the verified data to a preferences file
-			SharedPreferences data = this.getPreferences(Activity.MODE_PRIVATE);
-			SharedPreferences.Editor editor = data.edit();
-			editor.putString("Public IP", publicIP);
-			editor.putString("Private IP", privateIP);
-			editor.putString("Username", username);
-			editor.putString("Password", password);
+			SharedPreferences settings = getSharedPreferences("network_data", MODE_PRIVATE);
+			SharedPreferences.Editor editor = settings.edit();
+			editor.putString("public_ip", publicIP);
+			editor.putString("private_ip", privateIP);
+			editor.putString("username", username);
+			editor.putString("password", password);
+			editor.commit();
 			// Start the connect activity
 			Intent toConnect = new Intent(this, Connect.class);
 			startActivity(toConnect);

@@ -13,16 +13,29 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
+
+import org.json.*;
+
+import retrofit.Endpoint;
+import retrofit.Endpoints;
+import retrofit.RestAdapter;
+import retrofit.http.*;
 
 public class Control extends Activity {
 	
 	protected String connectionIP; // Protected for future implementations of "Advanced" activities
+	private static String baseUrl;
+	private static API api;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		// Get the accessible IP from the connect activity
 		Intent intent = getIntent();
 		connectionIP = intent.getStringExtra("IP");
+		baseUrl = "http://" + connectionIP + ":8073/";
+		RestAdapter adapter = new RestAdapter.Builder().setEndpoint(baseUrl).build();
+		api = adapter.create(API.class);
 		// Initialize the tab variables
 		ActionBar.Tab hosts, lights;
 		Fragment hostTab = new HostTab();
@@ -87,7 +100,15 @@ public class Control extends Activity {
 								 Bundle savedInstanceState) {
 			View view = inflater.inflate(R.layout.fragment_host_tab, container, false);
 			// TODO XML stuffs
-			// TODO actually fill the tab
+			try { // Get the JSON data for the hosts list
+				String result = api.listHosts();
+				JSONObject hostData = new JSONObject(result);
+				// For a temporary thing, lets print the first host name
+				TextView temp = (TextView)findViewById(R.id.temp);
+				temp.setText(result);
+			} catch (JSONException e) {
+				// TODO something here
+			}
 			return view;
 		}
 	}

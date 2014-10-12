@@ -26,7 +26,7 @@ public final class R {
         public static final int pokeball=0x7f020001;
     }
     public static final class id {
-        public static final int action_settings=0x7f080018;
+        public static final int action_settings=0x7f080019;
         public static final int configure=0x7f080014;
         public static final int connect_button=0x7f080011;
         public static final int connect_text=0x7f080012;
@@ -46,6 +46,7 @@ public final class R {
         public static final int public_ip_error=0x7f080005;
         public static final int public_ip_text=0x7f080003;
         public static final int retry=0x7f080015;
+        public static final int temp=0x7f080018;
         public static final int title=0x7f080000;
         public static final int title_bar=0x7f080010;
         public static final int username=0x7f08000a;
