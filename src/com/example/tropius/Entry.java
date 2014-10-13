@@ -12,6 +12,7 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.Intent;
 
@@ -26,7 +27,7 @@ public class Entry extends Activity {
     	 */
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_entry);
-        SharedPreferences data = this.getPreferences(Activity.MODE_PRIVATE);
+        SharedPreferences data = this.getPreferences(Context.MODE_PRIVATE);
         // Test if there is an existing config
         String ip = data.getString("Public IP", null);
         if (ip == null) { // No config exists as of yet, go to config activity

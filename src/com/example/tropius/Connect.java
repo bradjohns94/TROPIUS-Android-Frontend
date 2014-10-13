@@ -55,10 +55,12 @@ public class Connect extends Activity {
 		 * configure buttons visible.
 		 */
 		new Thread(new Runnable() {
+			@Override
 			public void run() {
 				final Intent toControl = connect();
 				if (toControl != null) {
 					runOnUiThread(new Runnable() {
+						@Override
 						public void run() {
 							// Start the control activity
 							startActivity(toControl);
@@ -66,6 +68,7 @@ public class Connect extends Activity {
 					});
 				} else {
 					runOnUiThread(new Runnable() {
+						@Override
 						public void run() {
 							// Display an error message
 							String message = ErrorMessage.getErrorMessage();
