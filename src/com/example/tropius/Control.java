@@ -104,8 +104,10 @@ public class Control extends Activity {
 				Bundle savedInstanceState) {
 			View view = inflater.inflate(R.layout.fragment_host_tab, container, false);
 			// TODO XML stuffs
-			// Send a request to display
-			new HttpTask().execute(baseUrl + "/TROPIUS/hosts/list");
+			ApiRequest req = new ApiRequest();
+			// Lets just do a host list request
+			String res = req.doInBackground(baseUrl + "/TROPIUS/hosts/list");
+			System.out.println("HTTP GET: /TROPIUS/hosts/list: " + res);
 			return view;
 		}
 	}
@@ -118,36 +120,6 @@ public class Control extends Activity {
 			// TODO XML stuffs
 			// TODO actually fill the tab
 			return view;
-		}
-	}
-
-	private class HttpTask extends AsyncTask<String, String, String> {
-		/* This class is pretty much just an experiment to see if I can get
-		 * REST CALLS working. Once it works there will be much tweaking.
-		 */
-		@Override
-		protected String doInBackground(String... params) {
-			String urlString = params[0];
-			InputStream stream = null;
-			String res = "";
-			// HTTP Get
-			try {
-				// Send the request
-				URL url = new URL(urlString);
-				HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-				stream = new BufferedInputStream(conn.getInputStream());
-				// Parse the response
-				BufferedReader streamReader = new BufferedReader(new InputStreamReader(stream, "UTF-8"));
-				StringBuilder responseBuilder = new StringBuilder();
-			    String inputString;
-			    while ((inputString = streamReader.readLine()) != null)
-			        responseBuilder.append(inputString);
-			    res = responseBuilder.toString();
-			} catch (Exception e ) {
-				// TODO something here
-			}
-			System.out.println(res);
-			return res;
 		}
 	}
 }
