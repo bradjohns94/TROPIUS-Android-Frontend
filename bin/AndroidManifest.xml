@@ -45,6 +45,6 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.example.tropius.Connect" />
         </activity>
+        <service android:enabled="true" android:name="fr.pcreations.labs.RESTDroid.core.RestService"></service>
     </application>
-
 </manifest>

@@ -1,3 +1,11 @@
+/** Control
+ * @author Bradley Johns
+ * The main class in charge of handling the interaction between the android frontend and the
+ * TROPIUS API. The control activity should make up a tabbed layout for different types of
+ * commands to be processed by the API and forward the input from the user to the TROPIUS
+ * backed as a valid RESTFUL http request
+ */
+
 package com.example.tropius;
 
 import java.io.BufferedInputStream;
@@ -25,17 +33,24 @@ import android.widget.TextView;
 
 import org.json.*;
 
-public class Control extends Activity {
+import com.loopj.android.http.AsyncHttpClient;
+import com.loopj.android.http.AsyncHttpResponseHandler;
+import com.loopj.android.http.RequestParams;
+
+public class Control extends Activity implements APIAccessor {
 
 	protected String connectionIP; // Protected for future implementations of "Advanced" activities
 	private static String baseUrl;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
+		/* Specify the base url to connect to and initialize the
+		 * tabs
+		 */
 		// Get the accessible IP from the connect activity
 		Intent intent = getIntent();
 		connectionIP = intent.getStringExtra("IP");
-		baseUrl = "http://" + connectionIP + ":8073/";
+		baseUrl = "http://" + connectionIP + ":8073";
 		// Initialize the tab variables
 		ActionBar.Tab hosts, lights;
 		Fragment hostTab = new HostTab();
@@ -56,6 +71,15 @@ public class Control extends Activity {
 		actionBar.addTab(lights);
 	}
 
+	public void GET(String url) {
+		// Send an HTTP GET request to the given URL
+		url = baseUrl + url;
+		System.out.println("Connecting to " + url);
+		AsyncHttpClient client = new AsyncHttpClient();
+		APIHandler api = new APIHandler(this);
+		client.get(url, api);
+	}
+
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
@@ -74,9 +98,20 @@ public class Control extends Activity {
 		}
 		return super.onOptionsItemSelected(item);
 	}
+	
+	public void asyncCallback(JSONObject response) {
+		/* Depending on the response key included in the
+		 * JSON response, add the correct fields to the UI
+		 */
+		// For now just make it display the text because I'm lazy...
+		TextView text = (TextView)findViewById(R.id.response);
+		text.setText(response.toString());
+	}
 
 	private class ControlTabListener implements ActionBar.TabListener {
-		// TODO document all of this once you have a better understanding of it
+		/* Controls any transactions made between tabs and changes the tab
+		 * to the appropriately clicked one
+		 */
 		Fragment fragment;
 
 		public ControlTabListener(Fragment newFragment) {
@@ -85,12 +120,13 @@ public class Control extends Activity {
 
 		@Override
 		public void onTabSelected(Tab tab, FragmentTransaction tx) {
+			// Switch the current view to the selected tab
 			tx.replace(R.id.fragment_container,  fragment);
-			// XXX I have no idea what I'm doing! :D
 		}
 
 		@Override
 		public void onTabUnselected(Tab tab, FragmentTransaction tx) {
+			// Take the view selected tab
 			tx.remove(fragment);
 		}
 
@@ -99,20 +135,27 @@ public class Control extends Activity {
 	}
 
 	private class HostTab extends Fragment {
+		/* Subclass that makes up the hosts tab of the control activity. The
+		 * control tab should include features that will activate any command
+		 * pertaining to the host endpoints in the TROPIUS API
+		 */
 		@Override
 		public View onCreateView(LayoutInflater inflater, ViewGroup container,
 				Bundle savedInstanceState) {
 			View view = inflater.inflate(R.layout.fragment_host_tab, container, false);
 			// TODO XML stuffs
-			ApiRequest req = new ApiRequest();
+			// TODO probably move this so it doesn't run every time
 			// Lets just do a host list request
-			String res = req.doInBackground(baseUrl + "/TROPIUS/hosts/list");
-			System.out.println("HTTP GET: /TROPIUS/hosts/list: " + res);
+			GET("/TROPIUS/hosts/list");
 			return view;
 		}
 	}
 
 	private class LightsTab extends Fragment {
+		/* Subclass that makes up the lights tab of the control activity. The
+		 * lights tab should include features that will activate any command
+		 * pertaining to the lights endpoints in the TROPIUS API
+		 */
 		@Override
 		public View onCreateView(LayoutInflater inflater, ViewGroup container,
 				Bundle savedInstanceState) {

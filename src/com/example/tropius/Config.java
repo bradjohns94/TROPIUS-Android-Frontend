@@ -54,6 +54,7 @@ public class Config extends Activity {
 		 * verifies its validity, stores it in a shared preferences
 		 * file and attempts a connection
 		 */
+		// TODO a lot of formatting work with this activity
 		// Get the values from the XML EditText fields
 		EditText publicIPField = (EditText)findViewById(R.id.public_ip_edit);
 		String publicIP = publicIPField.getText().toString();

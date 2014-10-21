@@ -1,3 +1,11 @@
+/** Connect
+ * @author Bradley Johns
+ * The class responsible for making first contact with the TROPIUS backend
+ * when the app is started. Upon success the activity will forward the user
+ * to the Control activity and on failure will throw a quirky error message
+ * and redirect the user to either try again or reconfigure
+ */
+
 package com.example.tropius;
 
 import android.app.Activity;
@@ -13,13 +21,29 @@ import android.widget.TextView;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-public class Connect extends Activity {
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import com.loopj.android.http.AsyncHttpClient;
+
+public class Connect extends Activity implements APIAccessor {
+	
+	/* The state variable tells which state of connecting the activity
+	 * is in. 0 for when the private address has not been tested,
+	 * 1 for when the private address has been tested but the public
+	 * address has not, and 2 if both attempts failed.
+	 */
+	private int state;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
+		/* Initialize the state variable and attempt to connect
+		 * to the private IP address specified in config
+		 */
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_connect);
-		tryConnection();
+		state = 0;
+		connect();
 	}
 
 	@Override
@@ -43,55 +67,60 @@ public class Connect extends Activity {
 	
 	public void retry(View view) {
 		/* This method literally just exists for the onClick for retry.
-		 * All it does is launch tryConnection...
+		 * All it does is launch connect...
 		 */
-		tryConnection();
+		connect();
 	}
 	
-	public void tryConnection() {
-		/* Create a new thread to start a connection over the network
-		 * If the connection is successful, launch the control activity,
-		 * otherwise display an error message and make the retry and
-		 * configure buttons visible.
+	public void asyncCallback(JSONObject response) {
+		/* Check the response key to see if the connection
+		 * was a success or not. If so, switch to the control
+		 * activity connecting to the IP address the TROPIUS server
+		 * responded to. Otherwise either increment state or throw an error
+		 * depending on the current state.
 		 */
-		new Thread(new Runnable() {
-			@Override
-			public void run() {
-				final Intent toControl = connect();
-				if (toControl != null) {
-					runOnUiThread(new Runnable() {
-						@Override
-						public void run() {
-							// Start the control activity
-							startActivity(toControl);
-						}
-					});
-				} else {
-					runOnUiThread(new Runnable() {
-						@Override
-						public void run() {
-							// Display an error message
-							String message = ErrorMessage.getErrorMessage();
-							TextView error = (TextView)findViewById(R.id.error);
-							error.setText(message);
-							error.setVisibility(View.VISIBLE);
-							// Show the retry and configure buttons
-							Button retry = (Button)findViewById(R.id.retry);
-							Button config = (Button)findViewById(R.id.configure);
-							retry.setVisibility(View.VISIBLE);
-							config.setVisibility(View.VISIBLE);
-						}
-					});
-				}
-			}
-		}).start();
+		boolean success = false;
+		try {
+			success = response.getBoolean("success");
+		} catch (JSONException ex) {
+			// TODO Error handling
+		}
+		if (success) { // Get the connection IP and start control
+			SharedPreferences settings = getSharedPreferences("network_data", MODE_PRIVATE);
+			String ip = "";
+			if (state == 0) ip = settings.getString("private_ip", "0.0.0.0");
+			else ip = settings.getString("public_ip", "0.0.0.0");
+			startControl(response, ip);
+		} else if (state == 0) { // Try to connect to the public IP
+			state++;
+			connect();
+		} else { // Display an error
+			showError();
+		}
 	}
 	
-	public Intent connect() {
-		/* Attempt to establish a connection with the configured
-		 * TROPIUS endpoint. If a connection can be established,
-		 * return an Intent object packed with an IP extra ready
-		 * to transition to the next activity. Otherwise return null
+	public void showError() {
+		/* Get a miscellaneous pokemon quote from the ErrorMessage class, then
+		 * display it as well as set the retry and reconfigure buttons to be
+		 * visible
+		 */
+		// Display an error message
+		String message = ErrorMessage.getErrorMessage();
+		TextView error = (TextView)findViewById(R.id.error);
+		error.setText(message);
+		error.setVisibility(View.VISIBLE);
+		// Show the retry and configure buttons
+		Button retry = (Button)findViewById(R.id.retry);
+		Button config = (Button)findViewById(R.id.configure);
+		retry.setVisibility(View.VISIBLE);
+		config.setVisibility(View.VISIBLE);
+	}
+	
+	public void connect() {
+		/* Send an asynchronous http request to the specified TROPIUS server. The address
+		 * the request is sent to is determined by the state variable. If the request is
+		 * processed within 5 seconds then the app will connect to the given IP, otherwise
+		 * the state will be incremented.
 		 */
 		// Initialize the intent
 		Intent ret = new Intent(this, Control.class);
@@ -101,30 +130,27 @@ public class Connect extends Activity {
         String privateIP = settings.getString("private_ip", "0.0.0.0");
         
         // Attempt to establish a connection with the given TROPIUS host
-        try {
-        	// Initially, we try to connect to the public IP
-        	InetAddress pub = InetAddress.getByName(publicIP);
-        	if (!pub.isReachable(5000)) {
-        		throw new UnknownHostException("Could not connect to given public IP");
-        	}
-        	ret.putExtra("IP", publicIP);
-        } catch (Exception pubError) { // TODO This is terrible practice, don't do this
-        	// If connecting to the public IP fails, try the private (Some routers are wonky)
-        	try {
-        		InetAddress priv = InetAddress.getByName(privateIP);
-        		if (!priv.isReachable(5000)) {
-        			throw new UnknownHostException("Could not connect to the given private IP");
-        		}
-        	} catch (Exception privError) { // TODO still terrible
-        		return null; // Can't connect, can't move on to next activity
-        	}
-        	ret.putExtra("IP", privateIP);
-        }
-        // If we didn't return, the connection was successful. Proceed to control
-        return ret;
+        String ip = privateIP;
+        if (state == 1) ip = publicIP;
+        String url = "http://" + ip + ":8073/TROPIUS/connection/test";
+        AsyncHttpClient client = new AsyncHttpClient();
+        client.setResponseTimeout(10000);
+		APIHandler api = new APIHandler(this);
+		System.out.println("Sending request to " + url);
+		client.get(url, api);
+	}
+	
+	public void startControl(JSONObject response, String IP) {
+		/* Pass the connection IP address to a new intent and start
+		 * the control activity
+		 */
+		Intent toControl = new Intent(this, Control.class);
+		toControl.putExtra("IP", IP);
+		startActivity(toControl);
 	}
 	
 	public void configure(View view) {
+		// Return to the configure activity
 		Intent toConfig = new Intent(this, Config.class);
 		startActivity(toConfig);
 	}
