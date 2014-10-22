@@ -8,40 +8,21 @@
 
 package com.example.tropius;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
-
 import android.app.ActionBar;
 import android.app.ActionBar.Tab;
-import android.app.ActionBar.TabListener;
 import android.app.Activity;
 import android.app.Fragment;
 import android.app.FragmentTransaction;
 import android.content.Intent;
-import android.os.AsyncTask;
 import android.os.Bundle;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.TextView;
 
-import org.json.*;
 
-import com.loopj.android.http.AsyncHttpClient;
-import com.loopj.android.http.AsyncHttpResponseHandler;
-import com.loopj.android.http.RequestParams;
-
-public class Control extends Activity implements APIAccessor {
+public class Control extends Activity {
 
 	protected String connectionIP; // Protected for future implementations of "Advanced" activities
-	private static String baseUrl;
-
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		/* Specify the base url to connect to and initialize the
@@ -50,11 +31,11 @@ public class Control extends Activity implements APIAccessor {
 		// Get the accessible IP from the connect activity
 		Intent intent = getIntent();
 		connectionIP = intent.getStringExtra("IP");
-		baseUrl = "http://" + connectionIP + ":8073";
+		String baseUrl = "http://" + connectionIP + ":8073";
 		// Initialize the tab variables
 		ActionBar.Tab hosts, lights;
-		Fragment hostTab = new HostTab();
-		Fragment lightsTab = new LightsTab();
+		Fragment hostTab = new HostTab(this, baseUrl);
+		Fragment lightsTab = new LightsTab(this, baseUrl);
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_control);
 
@@ -69,15 +50,6 @@ public class Control extends Activity implements APIAccessor {
 		// Add the tabs to the action bar
 		actionBar.addTab(hosts);
 		actionBar.addTab(lights);
-	}
-
-	public void GET(String url) {
-		// Send an HTTP GET request to the given URL
-		url = baseUrl + url;
-		System.out.println("Connecting to " + url);
-		AsyncHttpClient client = new AsyncHttpClient();
-		APIHandler api = new APIHandler(this);
-		client.get(url, api);
 	}
 
 	@Override
@@ -99,14 +71,6 @@ public class Control extends Activity implements APIAccessor {
 		return super.onOptionsItemSelected(item);
 	}
 	
-	public void asyncCallback(JSONObject response) {
-		/* Depending on the response key included in the
-		 * JSON response, add the correct fields to the UI
-		 */
-		// For now just make it display the text because I'm lazy...
-		TextView text = (TextView)findViewById(R.id.response);
-		text.setText(response.toString());
-	}
 
 	private class ControlTabListener implements ActionBar.TabListener {
 		/* Controls any transactions made between tabs and changes the tab
@@ -132,37 +96,5 @@ public class Control extends Activity implements APIAccessor {
 
 		@Override
 		public void onTabReselected(Tab tab, FragmentTransaction tx) {}
-	}
-
-	private class HostTab extends Fragment {
-		/* Subclass that makes up the hosts tab of the control activity. The
-		 * control tab should include features that will activate any command
-		 * pertaining to the host endpoints in the TROPIUS API
-		 */
-		@Override
-		public View onCreateView(LayoutInflater inflater, ViewGroup container,
-				Bundle savedInstanceState) {
-			View view = inflater.inflate(R.layout.fragment_host_tab, container, false);
-			// TODO XML stuffs
-			// TODO probably move this so it doesn't run every time
-			// Lets just do a host list request
-			GET("/TROPIUS/hosts/list");
-			return view;
-		}
-	}
-
-	private class LightsTab extends Fragment {
-		/* Subclass that makes up the lights tab of the control activity. The
-		 * lights tab should include features that will activate any command
-		 * pertaining to the lights endpoints in the TROPIUS API
-		 */
-		@Override
-		public View onCreateView(LayoutInflater inflater, ViewGroup container,
-				Bundle savedInstanceState) {
-			View view = inflater.inflate(R.layout.fragment_lights_tab, container, false);
-			// TODO XML stuffs
-			// TODO actually fill the tab
-			return view;
-		}
 	}
 }

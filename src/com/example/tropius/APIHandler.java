@@ -21,9 +21,9 @@ import com.loopj.android.http.AsyncHttpResponseHandler;
 
 public class APIHandler extends AsyncHttpResponseHandler {
 
-	private APIAccessor caller; // TODO this should probably be more abstract
+	private APIResponder caller; // TODO this should probably be more abstract
 	
-	public APIHandler(APIAccessor caller) {
+	public APIHandler(APIResponder caller) {
 		/* Initialize the calling activity so that we can call
 		 * back to it
 		 */

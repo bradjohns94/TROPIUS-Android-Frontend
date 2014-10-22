@@ -22,5 +22,6 @@
     <string name="title_activity_control">Control</string>
     <string name="hosts">Hosts</string>
     <string name="lights">Lights</string>
+    <string name="host">Host:</string>
 
 </resources>

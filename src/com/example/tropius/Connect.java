@@ -18,15 +18,12 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.loopj.android.http.AsyncHttpClient;
 
-public class Connect extends Activity implements APIAccessor {
+public class Connect extends Activity implements APIResponder {
 	
 	/* The state variable tells which state of connecting the activity
 	 * is in. 0 for when the private address has not been tested,
@@ -66,12 +63,21 @@ public class Connect extends Activity implements APIAccessor {
 	}
 	
 	public void retry(View view) {
-		/* This method literally just exists for the onClick for retry.
-		 * All it does is launch connect...
+		/* Set the Settings and try again button to be invisible. Set the
+		 * Error text to be invisible, and re-run connect
 		 */
+		// Remove the error display
+		Button retry = (Button)findViewById(R.id.retry);
+		Button config = (Button)findViewById(R.id.configure);
+		retry.setVisibility(View.GONE);
+		config.setVisibility(View.GONE);
+		TextView error = (TextView)findViewById(R.id.error);
+		error.setVisibility(View.GONE);
+		// Retry the connection
 		connect();
 	}
 	
+	@Override
 	public void asyncCallback(JSONObject response) {
 		/* Check the response key to see if the connection
 		 * was a success or not. If so, switch to the control
@@ -123,7 +129,6 @@ public class Connect extends Activity implements APIAccessor {
 		 * the state will be incremented.
 		 */
 		// Initialize the intent
-		Intent ret = new Intent(this, Control.class);
 		// Start by getting the network data from the shared preferences file
         SharedPreferences settings = getSharedPreferences("network_data", MODE_PRIVATE);
         String publicIP = settings.getString("public_ip", "0.0.0.0");
@@ -132,11 +137,12 @@ public class Connect extends Activity implements APIAccessor {
         // Attempt to establish a connection with the given TROPIUS host
         String ip = privateIP;
         if (state == 1) ip = publicIP;
-        String url = "http://" + ip + ":8073/TROPIUS/connection/test";
+        String url = "http://" + ip + ":8073";
+        url += "/TROPIUS/connection/test";
+        System.out.println("Attempting http GET to " + url);
         AsyncHttpClient client = new AsyncHttpClient();
-        client.setResponseTimeout(10000);
+		client.setResponseTimeout(2000);
 		APIHandler api = new APIHandler(this);
-		System.out.println("Sending request to " + url);
 		client.get(url, api);
 	}
 	
