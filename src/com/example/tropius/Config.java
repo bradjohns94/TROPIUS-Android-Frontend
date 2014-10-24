@@ -79,7 +79,7 @@ public class Config extends Activity {
 		if (!validator.isValidInet4Address(privateIP)) {
 			// The given IP was invalid, throw an error
 			TextView privateIPError = (TextView)findViewById(R.id.private_ip_error);
-			privateIPError.setText(publicIP + " is not a valid IPv4 Address");
+			privateIPError.setText(privateIP + " is not a valid IPv4 Address");
 			privateIPError.setTextColor(Color.RED);
 			privateIPError.setVisibility(0);
 			valid = false;

@@ -61,6 +61,7 @@
         
     	<TextView
     	    android:id="@+id/public_ip_error"
+    	    android:gravity="center_horizontal"
     	    android:layout_width="0dp"
     	    android:layout_height="20dp"
     	    android:visibility="gone"
@@ -101,6 +102,7 @@
         
     	<TextView
     	    android:id="@+id/private_ip_error"
+    	    android:gravity="center_horizontal"
     	    android:layout_width="0dp"
     	    android:layout_height="20dp"
     	    android:visibility="gone"
