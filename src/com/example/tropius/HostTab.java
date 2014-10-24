@@ -63,11 +63,12 @@ public class HostTab extends APIAccessor {
 	}
 	
 	private void addRow(String rowName, View view) {
+		// Add a row to the host view table layout with the given name
 		TableLayout table = (TableLayout)view.findViewById(R.id.table);
 		TableRow row = new TableRow(controller);
 		TableLayout.LayoutParams params = new TableLayout.LayoutParams(TableLayout.LayoutParams.FILL_PARENT,
 																	   convertDpToPixel(25, controller));
-		row.setPadding(10, 10, 5, 10); // XXX this may be sketchy
+		row.setPadding(10, 10, 5, 10);
 		row.setGravity(Gravity.CENTER);
 		TextView text = new TextView(controller);
 		text.setTextAppearance(controller, android.R.style.TextAppearance_Medium);
@@ -77,8 +78,13 @@ public class HostTab extends APIAccessor {
 	}
 	
 	private void addMagicBlueLine(View view) {
+		/* Rule 1 of Android development: Don't
+		 * Rule 2 of Android development: When in doubt, add a blue line
+		 * This method is for those of us who broke rule 1, but follow
+		 * rule 2
+		 */
 		TableLayout table = (TableLayout)view.findViewById(R.id.table);
-		View magicBlueLine = new View(controller); // Android likes its blue lines
+		View magicBlueLine = new View(controller);
 		magicBlueLine.setBackgroundColor(androidBlue);
 		LayoutParams lineParams = new LayoutParams(LayoutParams.MATCH_PARENT,
 												   convertDpToPixel(1, controller));

@@ -49,6 +49,8 @@
 
             <EditText
                 android:id="@+id/public_ip_edit"
+                android:inputType="phone"
+                android:imeOptions="actionNext"
                 android:layout_width="0dp"
                 android:layout_height="40dp"
                 android:layout_column="2"
@@ -87,6 +89,8 @@
 
             <EditText
                 android:id="@+id/private_ip_edit"
+                android:inputType="phone"
+                android:imeOptions="actionNext"
                 android:layout_width="0dp"
                 android:layout_height="40dp"
                 android:layout_column="2"
@@ -126,6 +130,7 @@
 
             <EditText
                 android:id="@+id/username_edit"
+                android:imeOptions="actionNext"
                 android:layout_width="0dp"
                 android:layout_height="40dp"
                 android:layout_column="2"
@@ -158,6 +163,7 @@
 
             <EditText
                 android:id="@+id/password_edit"
+                android:imeOptions="actionNext"
                 android:layout_width="0dp"
                 android:layout_height="40dp"
                 android:layout_column="2"
