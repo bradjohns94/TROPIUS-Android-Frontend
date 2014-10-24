@@ -39,8 +39,7 @@
         </activity>
         <activity
             android:name=".Control"
-            android:label="@string/title_activity_control"
-            android:parentActivityName=".Connect" >
+            android:label="@string/title_activity_control" >
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.example.tropius.Connect" />

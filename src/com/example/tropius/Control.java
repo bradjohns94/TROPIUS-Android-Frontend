@@ -41,6 +41,8 @@ public class Control extends Activity {
 
 		// Setup the action bar
 		ActionBar actionBar = getActionBar();
+		actionBar.setDisplayShowHomeEnabled(false);              
+		actionBar.setDisplayShowTitleEnabled(false);
 		actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
 		hosts = actionBar.newTab().setText(R.string.hosts);
 		lights = actionBar.newTab().setText(R.string.lights);
@@ -50,13 +52,6 @@ public class Control extends Activity {
 		// Add the tabs to the action bar
 		actionBar.addTab(hosts);
 		actionBar.addTab(lights);
-	}
-
-	@Override
-	public boolean onCreateOptionsMenu(Menu menu) {
-		// Inflate the menu; this adds items to the action bar if it is present.
-		getMenuInflater().inflate(R.menu.control, menu);
-		return true;
 	}
 
 	@Override
