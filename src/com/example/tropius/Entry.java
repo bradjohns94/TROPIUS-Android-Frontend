@@ -27,9 +27,9 @@ public class Entry extends Activity {
     	 */
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_entry);
-        SharedPreferences data = this.getPreferences(Context.MODE_PRIVATE);
+        SharedPreferences data = this.getSharedPreferences("network_data", MODE_PRIVATE);
         // Test if there is an existing config
-        String ip = data.getString("Public IP", null);
+        String ip = data.getString("public_ip", null);
         if (ip == null) { // No config exists as of yet, go to config activity
         	Intent toConfig = new Intent(this, Config.class);
         	startActivity(toConfig);
