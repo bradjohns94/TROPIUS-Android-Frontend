@@ -9,9 +9,12 @@
 
 package com.example.tropius;
 
+import java.util.HashMap;
+
 import org.json.JSONObject;
 
 import com.loopj.android.http.AsyncHttpClient;
+import com.loopj.android.http.RequestParams;
 
 import android.app.Activity;
 import android.app.Fragment;
@@ -33,6 +36,15 @@ public abstract class APIAccessor extends Fragment implements APIResponder {
 		client.setResponseTimeout(5000);
 		APIHandler api = new APIHandler(this);
 		client.get(url, api);
+	}
+	
+	public void POST(String url, HashMap params) {
+		// Send an HTTP PATCH request to the given URL with the specified params
+		url = baseUrl + url;
+		AsyncHttpClient client = new AsyncHttpClient();
+		client.setResponseTimeout(5000);
+		APIHandler api = new APIHandler(this);
+		client.post(url, new RequestParams(params), api);
 	}
 	
 	// TODO add the other http request types

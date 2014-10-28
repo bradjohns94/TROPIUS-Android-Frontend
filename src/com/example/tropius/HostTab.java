@@ -16,12 +16,14 @@ import android.util.DisplayMetrics;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
+import android.widget.Switch;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
@@ -33,6 +35,7 @@ public class HostTab extends APIAccessor {
 	 */
 	
 	private HashMap<String, Integer> nameToId;
+	private JSONObject hostData;
 	private static final int androidBlue = Color.parseColor("#3399FF");
 	
 	public HostTab(Activity controller, String baseUrl) {
@@ -45,6 +48,7 @@ public class HostTab extends APIAccessor {
 		View view = inflater.inflate(R.layout.fragment_tab, container, false);
 		container.setBackgroundColor(Color.parseColor("#E6E6E6"));
 		nameToId = new HashMap<String, Integer>();
+		hostData = new JSONObject();
 		// Set the device text to "Host:"
 		TextView deviceText = (TextView)view.findViewById(R.id.device_text);
 		deviceText.setText("Host:");
@@ -52,17 +56,18 @@ public class HostTab extends APIAccessor {
 		GET("/TROPIUS/hosts/list");
 		// Get the table for future use and add a power row
 		TableLayout table = (TableLayout)view.findViewById(R.id.table);
-		addRow("Power", view);
+		RowExpander rowListener = new RowExpander();
+		addRow("Power", view, rowListener);
 		// Add the separator line
 		addMagicBlueLine(view);
 		// Create the media row
-		addRow("Media", view);
+		addRow("Media", view, rowListener);
 		addMagicBlueLine(view);
 		
 		return view;
 	}
 	
-	private void addRow(String rowName, View view) {
+	private void addRow(String rowName, View view, RowExpander rowListener) {
 		// Add a row to the host view table layout with the given name
 		TableLayout table = (TableLayout)view.findViewById(R.id.table);
 		TableRow row = new TableRow(controller);
@@ -70,6 +75,7 @@ public class HostTab extends APIAccessor {
 																	   convertDpToPixel(25, controller));
 		row.setPadding(10, 10, 5, 10);
 		row.setGravity(Gravity.CENTER);
+		row.setOnClickListener(rowListener);
 		TextView text = new TextView(controller);
 		text.setTextAppearance(controller, android.R.style.TextAppearance_Medium);
 		text.setText(rowName);
@@ -100,8 +106,12 @@ public class HostTab extends APIAccessor {
 			// Get a list of TROPIUS enabled devices
 			processList(response);
 		} else if (key.equals("get")) {
-			// Fill the UI with data about the selected host
-			
+			// Set the hostData object
+			try {
+				hostData = response.getJSONObject("get");
+			} catch (JSONException e) {
+				// TODO error handling
+			}
 		}
 	}
 	
@@ -175,6 +185,75 @@ public class HostTab extends APIAccessor {
 		@Override
 		public void onNothingSelected(AdapterView<?> parentView) {
 			// TODO I don't know what yet, but something here.
+		}
+	}
+	
+	private class RowExpander implements OnClickListener {
+		
+		private ArrayList<View> added;
+		
+		public RowExpander() {
+			added = new ArrayList<View>();
+		}
+		
+		public void onClick(View view) {
+			// Get the type of row that was clicked
+			TableLayout table = (TableLayout)getView().findViewById(R.id.table);
+			// Remove all previously added views
+			for (View toRemove : added) {
+				table.removeView(toRemove);
+			}
+			added = new ArrayList<View>();
+			TableRow clicked = (TableRow)view;
+			TextView text = (TextView)clicked.getChildAt(0);
+			String title = text.getText().toString();
+			if (title.equals("Power")) {
+				// Insert the divider line
+				int index = addDivider(table, view);
+				// Insert the data for the power row
+				Switch powerSwitch = new Switch(controller);
+				boolean checked = false;
+				try {
+					checked = (hostData.getString("state") == "on");
+				} catch (JSONException ex) {
+					// TODO error handling
+				}
+				powerSwitch.setChecked(checked);
+				powerSwitch.setOnClickListener(new OnClickListener() {
+					public void onClick(View view) {
+						try {
+							String id = hostData.getString("sid");
+							POST("/TROPIUS/hosts/" + id + "/power", null);
+						} catch (JSONException ex) {
+							// TODO error handling
+						}
+					}
+				});
+				table.addView(powerSwitch, index);
+				added.add(powerSwitch);
+			} else if (title.equals("Media")) {
+				// TODO inflate media menu
+			}
+		}
+		
+		private int addDivider(TableLayout table, View view) {
+			View divider = new View(controller);
+			divider.setBackgroundColor(Color.BLACK);
+			LayoutParams lineParams = new LayoutParams(LayoutParams.MATCH_PARENT,
+													   convertDpToPixel(1, controller));
+			int index = getIndex(table, view) + 2;
+			table.addView(divider, index, lineParams);
+			added.add(divider);
+			return index;
+		}
+		
+		private int getIndex(TableLayout layout, View view) {
+			for (int i = 0; i < layout.getChildCount(); i++) {
+				if (view.equals(layout.getChildAt(i))) {
+					return i;
+				}
+			}
+			return layout.getChildCount() - 1;
 		}
 	}
 }
