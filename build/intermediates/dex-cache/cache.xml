@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<items version="2" >
+
+    <item
+        jar="/Users/bjohns/Programs/android/workspace/TROPIUS/app/libs/commons-validator-1.4.0.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="42fa1046955ade59f5354a1876cfc523cea33815">
+        <dex dex="/Users/bjohns/Programs/android/workspace/TROPIUS/app/build/intermediates/pre-dexed/debug/commons-validator-1.4.0-08a5bbe524bd03fad92aa00475bf1262ae49fd16.jar" />
+    </item>
+    <item
+        jar="/Users/bjohns/Programs/android/workspace/TROPIUS/app/libs/android-support-v13.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="41c6fb0537e463f685d3235fc50d38dc540d6ece">
+        <dex dex="/Users/bjohns/Programs/android/workspace/TROPIUS/app/build/intermediates/pre-dexed/debug/android-support-v13-b59de6b6f08ff6cd21d8642b5732aeaa72383e93.jar" />
+    </item>
+    <item
+        jar="/Users/bjohns/Programs/android/workspace/TROPIUS/app/libs/android-async-http-1.4.6.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="a845a88238be0b5be9d238652c1bc0605ef91f52">
+        <dex dex="/Users/bjohns/Programs/android/workspace/TROPIUS/app/build/intermediates/pre-dexed/debug/android-async-http-1.4.6-38f7c352685fd682869c7671b4b588137207617e.jar" />
+    </item>
+
+</items>

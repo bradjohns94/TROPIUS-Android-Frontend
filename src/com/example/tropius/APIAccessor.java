@@ -33,7 +33,7 @@ public abstract class APIAccessor extends Fragment implements APIResponder {
 		// Send an HTTP GET request to the given URL
 		url = baseUrl + url;
 		AsyncHttpClient client = new AsyncHttpClient();
-		client.setResponseTimeout(5000);
+		client.setTimeout(100000); // TODO, make this less stupid
 		APIHandler api = new APIHandler(this);
 		client.get(url, api);
 	}
@@ -42,7 +42,6 @@ public abstract class APIAccessor extends Fragment implements APIResponder {
 		// Send an HTTP PATCH request to the given URL with the specified params
 		url = baseUrl + url;
 		AsyncHttpClient client = new AsyncHttpClient();
-		client.setResponseTimeout(5000);
 		APIHandler api = new APIHandler(this);
 		client.post(url, new RequestParams(params), api);
 	}

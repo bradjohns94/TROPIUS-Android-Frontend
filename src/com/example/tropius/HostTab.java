@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -22,6 +23,7 @@ import android.view.ViewGroup.LayoutParams;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.Spinner;
 import android.widget.Switch;
 import android.widget.TableLayout;
@@ -35,7 +37,10 @@ public class HostTab extends APIAccessor {
 	 */
 	
 	private HashMap<String, Integer> nameToId;
+	private HashMap<String, View> rowByName;
 	private JSONObject hostData;
+	private String subsection;
+	private boolean subsectionMutex;
 	private static final int androidBlue = Color.parseColor("#3399FF");
 	
 	public HostTab(Activity controller, String baseUrl) {
@@ -48,7 +53,10 @@ public class HostTab extends APIAccessor {
 		View view = inflater.inflate(R.layout.fragment_tab, container, false);
 		container.setBackgroundColor(Color.parseColor("#E6E6E6"));
 		nameToId = new HashMap<String, Integer>();
+		rowByName = new HashMap<String, View>();
 		hostData = new JSONObject();
+		subsection = "";
+		subsectionMutex = true; // Mutex to not allow changes while requests are being processed
 		// Set the device text to "Host:"
 		TextView deviceText = (TextView)view.findViewById(R.id.device_text);
 		deviceText.setText("Host:");
@@ -81,6 +89,7 @@ public class HostTab extends APIAccessor {
 		text.setText(rowName);
 		row.addView(text);
 		table.addView(row);
+		rowByName.put(rowName, row);
 	}
 	
 	private void addMagicBlueLine(View view) {
@@ -112,6 +121,18 @@ public class HostTab extends APIAccessor {
 			} catch (JSONException e) {
 				// TODO error handling
 			}
+		} else {
+			subsectionMutex = false; // Lock changes while results are processed
+			if (key.equals("library") && subsection.equals("Media")) {
+				// Populate song selector spinners
+				try {
+					response = response.getJSONObject("library");
+					addSongSelectorSpinners(response);
+				} catch (JSONException e) {
+					// TODO error handling
+				}
+			}
+			subsectionMutex = true; // unlock subsection changes
 		}
 	}
 	
@@ -156,6 +177,26 @@ public class HostTab extends APIAccessor {
 		deviceRow.addView(deviceSpinner, params);
 	}
 	
+	private void addSongSelectorSpinners(JSONObject library) {
+		// Get the media row's base index
+		TableLayout table = (TableLayout)getView().findViewById(R.id.table);
+		View row = rowByName.get("Media");
+		int index = getIndex(table, row);
+		/* Rows are set up as title, divider line, content row 1, content row 2, ..., divider
+		 * Since we want the row of song selector spinners to be the first content row, and the
+		 * index has been calculated to be the view of the title row. Thus, the index needs to be
+		 * incremented by 2 to be where the first row of content will be.
+		 */
+		index += 2;
+		SongSelectorSpinner songSelector = new SongSelectorSpinner(controller, library, table, index);
+		songSelector.drawSpinners();
+		// Add the play button
+		Button play = new Button(controller);
+		play.setText("Play");
+		play.setLayoutParams(new TableRow.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+		table.addView(play, index + 3);
+	}
+	
 	public static int convertDpToPixel(int intDP, Context context){
 		float dp = (float)intDP;
 	    Resources resources = context.getResources();
@@ -188,6 +229,15 @@ public class HostTab extends APIAccessor {
 		}
 	}
 	
+	private int getIndex(TableLayout layout, View view) {
+		for (int i = 0; i < layout.getChildCount(); i++) {
+			if (view.equals(layout.getChildAt(i))) {
+				return i;
+			}
+		}
+		return layout.getChildCount() - 1;
+	}
+	
 	private class RowExpander implements OnClickListener {
 		
 		private ArrayList<View> added;
@@ -197,6 +247,7 @@ public class HostTab extends APIAccessor {
 		}
 		
 		public void onClick(View view) {
+			if (!subsectionMutex) return; // Don't change section if mutex locked
 			// Get the type of row that was clicked
 			TableLayout table = (TableLayout)getView().findViewById(R.id.table);
 			// Remove all previously added views
@@ -207,6 +258,7 @@ public class HostTab extends APIAccessor {
 			TableRow clicked = (TableRow)view;
 			TextView text = (TextView)clicked.getChildAt(0);
 			String title = text.getText().toString();
+			subsection = title;
 			if (title.equals("Power")) {
 				// Insert the divider line
 				int index = addDivider(table, view);
@@ -214,7 +266,7 @@ public class HostTab extends APIAccessor {
 				Switch powerSwitch = new Switch(controller);
 				boolean checked = false;
 				try {
-					checked = (hostData.getString("state") == "on");
+					checked = (hostData.getString("state").equals("on"));
 				} catch (JSONException ex) {
 					// TODO error handling
 				}
@@ -232,7 +284,15 @@ public class HostTab extends APIAccessor {
 				table.addView(powerSwitch, index);
 				added.add(powerSwitch);
 			} else if (title.equals("Media")) {
-				// TODO inflate media menu
+				// Insert the divider line
+				addDivider(table, view);
+				// Request the library xml file to populate artist selectors
+				try {
+					String id = hostData.getString("sid");
+					GET("/TROPIUS/hosts/" + id + "/music");
+				} catch (JSONException e) {
+					// TODO error handling
+				}
 			}
 		}
 		
@@ -245,15 +305,6 @@ public class HostTab extends APIAccessor {
 			table.addView(divider, index, lineParams);
 			added.add(divider);
 			return index;
-		}
-		
-		private int getIndex(TableLayout layout, View view) {
-			for (int i = 0; i < layout.getChildCount(); i++) {
-				if (view.equals(layout.getChildAt(i))) {
-					return i;
-				}
-			}
-			return layout.getChildCount() - 1;
 		}
 	}
 }
