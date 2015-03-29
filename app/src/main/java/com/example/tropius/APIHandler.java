@@ -18,13 +18,15 @@ import java.io.UnsupportedEncodingException;
 
 public class APIHandler extends AsyncHttpResponseHandler {
 
-	private APIResponder caller; // TODO this should probably be more abstract
+	private APIResponder caller;
+    private double progress;
 	
 	public APIHandler(APIResponder caller) {
 		/* Initialize the calling activity so that we can call
 		 * back to it
 		 */
 		this.caller = caller;
+        this.progress = 0.0;
 	}
 
 	@Override
@@ -72,4 +74,9 @@ public class APIHandler extends AsyncHttpResponseHandler {
 		}
 		caller.asyncCallback(response); // callback
 	}
+
+    @Override
+    public void onProgress(int bytesWritten, int totalSize) {
+        caller.getProgressUpdate((double)bytesWritten / (double)totalSize);
+    }
 }

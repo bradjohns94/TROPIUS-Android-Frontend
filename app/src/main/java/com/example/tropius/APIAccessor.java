@@ -28,6 +28,7 @@ public abstract class APIAccessor extends Fragment implements APIResponder {
 	
 	Activity controller;
 	String baseUrl;
+    int progress;
 
     public APIAccessor() {
         controller = getActivity();
@@ -40,7 +41,12 @@ public abstract class APIAccessor extends Fragment implements APIResponder {
         controller = activity;
     }
 
+    public void getProgressUpdate(double progress) {
+        this.progress = (int)Math.round(progress * 100); // Convert the progress to an integer percent
+    }
+
 	public void GET(String url) {
+        this.progress = 0;
         // Retrieve the base url from the args bundle
         Bundle args = this.getArguments();
         baseUrl = args.getString("url");
@@ -53,6 +59,7 @@ public abstract class APIAccessor extends Fragment implements APIResponder {
 	}
 	
 	public void POST(String url, JSONObject params) {
+        this.progress = 0;
         // Retrieve the base url from the args bundle
         Bundle args = this.getArguments();
         baseUrl = args.getString("url");
@@ -68,6 +75,18 @@ public abstract class APIAccessor extends Fragment implements APIResponder {
             // TODO error handling
         }
 	}
+
+    public void DELETE(String url) {
+        // Retrieve the base url from the args bundle
+        Bundle args = this.getArguments();
+        baseUrl = args.getString("url");
+        // Send an HTTP GET request to the given URL
+        url = baseUrl + url;
+        AsyncHttpClient client = new AsyncHttpClient();
+        client.setTimeout(100000); // TODO, make this less stupid
+        APIHandler api = new APIHandler(this);
+        client.delete(url, api);
+    }
 	
 	// TODO add the other http request types
 }

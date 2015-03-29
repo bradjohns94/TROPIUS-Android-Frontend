@@ -104,8 +104,13 @@ public class Connect extends Activity implements APIResponder {
 			showError();
 		}
 	}
-	
-	public void showError() {
+
+    @Override
+    public void getProgressUpdate(double progress) {
+        // This is unncecessary for this activity
+    }
+
+    public void showError() {
 		/* Get a miscellaneous pokemon quote from the ErrorMessage class, then
 		 * display it as well as set the retry and reconfigure buttons to be
 		 * visible

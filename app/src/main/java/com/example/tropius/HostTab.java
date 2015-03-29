@@ -16,11 +16,13 @@ import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.Switch;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.json.JSONException;
@@ -29,15 +31,19 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class HostTab extends APIAccessor {
 	/* Class that makes up the hosts tab of the control activity. The
 	 * control tab should include features that will activate any command
 	 * pertaining to the host endpoints in the TROPIUS API
 	 */
-	
+
+    private ArrayList<String> hosts;
+    private ArrayList<View> added;
 	private HashMap<String, Integer> nameToId;
-	private HashMap<String, View> rowByName;
+	private HashMap<String, TableRow> rowByName;
 	private JSONObject hostData;
 	private String subsection;
 	private boolean subsectionMutex;
@@ -52,8 +58,9 @@ public class HostTab extends APIAccessor {
 			Bundle savedInstanceState) {
 		View view = inflater.inflate(R.layout.fragment_tab, container, false);
 		container.setBackgroundColor(Color.parseColor("#E6E6E6"));
+        hosts = new ArrayList<String>();
 		nameToId = new HashMap<String, Integer>();
-		rowByName = new HashMap<String, View>();
+		rowByName = new HashMap<String, TableRow>();
 		hostData = new JSONObject();
 		subsection = "";
 		subsectionMutex = true; // Mutex to not allow changes while requests are being processed
@@ -127,7 +134,15 @@ public class HostTab extends APIAccessor {
 			} catch (JSONException e) {
 				// TODO error handling
 			}
-		} else {
+		} else if (key.equals("add")) {
+            Toast added = Toast.makeText(controller, "Host Successfully Added", Toast.LENGTH_SHORT);
+            added.show();
+            // TODO update spinners
+        } else if (key.equals("remove")) {
+            Toast removed = Toast.makeText(controller, "Host Removed Successfully", Toast.LENGTH_SHORT);
+            removed.show();
+            // TODO update spinners
+        } else {
 			subsectionMutex = false; // Lock changes while results are processed
 			if (key.equals("library") && subsection.equals("Media")) {
 				// Populate song selector spinners
@@ -149,7 +164,6 @@ public class HostTab extends APIAccessor {
 		 * out of names from the response, as well as filling the nameToId
 		 * map
 		 */
-		ArrayList<String> devices = new ArrayList<String>();
 		try {
 			response = response.getJSONObject("list");
 		} catch (JSONException ex) {
@@ -160,14 +174,13 @@ public class HostTab extends APIAccessor {
 			String id = ids.next().toString();
 			try { // Java, why you do this?
 				String nextDevice = response.getJSONObject(id).getString("devicename");
-				devices.add(nextDevice);
 				nameToId.put(nextDevice, Integer.parseInt(id));
+                hosts.add(nextDevice);
 			} catch (JSONException ex) {
 				// TODO error handling
 			}
 		}
 		// Create and add the device spinner
-		final ArrayList<String> hosts = devices;
 		Spinner deviceSpinner = new Spinner(controller);
 		ArrayAdapter<String> adapter 
 		= new ArrayAdapter<String>(controller,
@@ -186,7 +199,16 @@ public class HostTab extends APIAccessor {
 	private void addSongSelectorSpinners(JSONObject library) {
 		// Get the media row's base index
 		TableLayout table = (TableLayout)getView().findViewById(R.id.table);
-		View row = rowByName.get("Media");
+		TableRow row = rowByName.get("Media");
+        // Find the progress bar and remove it
+        ProgressBar bar = null;
+        for (View view : added) { // TODO find a better way to do this
+            if (view instanceof ProgressBar) {
+                bar = (ProgressBar)view;
+                break;
+            }
+        }
+        if (bar != null) table.removeView(bar);
 		int index = getIndex(table, row);
 		/* Rows are set up as title, divider line, content row 1, content row 2, ..., divider
 		 * Since we want the row of song selector spinners to be the first content row, and the
@@ -194,13 +216,28 @@ public class HostTab extends APIAccessor {
 		 * incremented by 2 to be where the first row of content will be.
 		 */
 		index += 2;
-		SongSelectorSpinner songSelector = new SongSelectorSpinner(controller, library, table, index);
+        // Add the selector spinners
+		final SongSelectorSpinner songSelector = new SongSelectorSpinner(controller, library, table, index, added);
 		songSelector.drawSpinners();
-		// Add the play button
-		Button play = new Button(controller);
-		play.setText("Play");
-		play.setLayoutParams(new TableRow.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
-		table.addView(play, index + 3);
+        // Add the play button
+        index += 3;
+        Button play = new Button(controller);
+        play.setText("Play");
+        play.setLayoutParams(new TableRow.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+        table.addView(play, index);
+        play.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                try {
+                    String id = hostData.getString("sid");
+                    JSONObject args = songSelector.getSelected();
+                    POST("/TROPIUS/hosts/" + id + "/music/play", args);
+                } catch (JSONException ex) {
+                    // TODO error handling
+                }
+            }
+        });
+        added.add(play);
 	}
 	
 	public static int convertDpToPixel(int intDP, Context context){
@@ -245,13 +282,20 @@ public class HostTab extends APIAccessor {
 	}
 	
 	private class RowExpander implements OnClickListener {
+        // TODO this has gotten huge enough that it should probably get its own file
 		
-		private ArrayList<View> added;
         private final TableLayout table;
+        private View nameError; // TODO still terrible
+        private View ipError; // TODO this is terrible. Make it not
+        private View macError; // TODO same ^
+        private ProgressBar progressBar;
 		
 		public RowExpander(TableLayout parent) {
             added = new ArrayList<View>();
             table = parent;
+            nameError = null;
+            ipError = null;
+            macError = null;
 		}
 		
 		public void onClick(View view) {
@@ -304,7 +348,20 @@ public class HostTab extends APIAccessor {
 
         private void expandMediaRow(View view) {
             // Insert the divider line
-            addDivider(table, view);
+            int index = addDivider(table, view);
+            // Create a progress bar to make it look like we're doing something
+            progressBar = new ProgressBar(controller);
+            table.addView(progressBar, index);
+            added.add(progressBar);
+            // Start a thread to update the progress bar
+            new Thread(new Runnable() {
+                public void run() {
+                    while (progress < 100) {
+                        // Update the progress bar
+                        progressBar.setProgress(progress);
+                    }
+                }
+            }).start();
             // Request the library xml file to populate artist selectors
             try {
                 String id = hostData.getString("sid");
@@ -365,18 +422,19 @@ public class HostTab extends APIAccessor {
             addHost.setOnClickListener(new OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    boolean noErrors = true;
                     String name = nameField.getText().toString();
                     String ip = ipField.getText().toString();
                     String mac = macField.getText().toString();
-                    if (!checkIp(ip, table, index + 2)) {
-                        noErrors = false;
-                    }
-                    if (!checkMac(mac)) {
-                        // TODO display error text
-                        noErrors = false;
-                    }
-                    if (noErrors) { // Build the JSON Params and post it to TROPIUS
+                    nameError = checkName(name, index + 1);
+                    // Increment the IP index if there was a name error
+                    int ipIndex = index + 2;
+                    if (nameError != null) ipIndex++;
+                    ipError = checkIp(ip, ipIndex);
+                    // Increment the location of the mac address error message if there was an error with IP
+                    int macIndex = ipIndex + 1;
+                    if (ipError != null) macIndex++;
+                    macError = checkMac(mac, macIndex);
+                    if (nameError == null && ipError == null && macError == null) { // Build the JSON Params and post it to TROPIUS
                         try {
                             JSONObject params = new JSONObject();
                             params.put("deviceName", name);
@@ -395,7 +453,34 @@ public class HostTab extends APIAccessor {
 
 
         private void expandRemoveRow(View view) {
-
+            int index = addDivider(table, view);
+            // Create the row and parameters themselves
+            TableRow row = new TableRow(controller);
+            TableRow.LayoutParams spinnerParams = new TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 0.45f);
+            TableRow.LayoutParams buttonParams = new TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 0.55f);
+            // Create the host selection spinner
+            final Spinner hostSpinner = new Spinner(controller);
+            ArrayAdapter<String> adapter
+                    = new ArrayAdapter<String>(controller,
+                    android.R.layout.simple_spinner_dropdown_item,
+                    hosts);
+            hostSpinner.setAdapter(adapter);
+            hostSpinner.setTextAlignment(Spinner.TEXT_ALIGNMENT_TEXT_END);
+            row.addView(hostSpinner);
+            // Add the removal button
+            Button submit = new Button(controller);
+            submit.setLayoutParams(buttonParams);
+            submit.setText("Remove Host");
+            submit.setOnClickListener(new OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    String selected = hostSpinner.getSelectedItem().toString();
+                    DELETE("/TROPIUS/hosts/remove/" + nameToId.get(selected));
+                }
+            });
+            row.addView(submit);
+            table.addView(row, index);
+            added.add(row);
         }
 		
 		private int addDivider(TableLayout table, View view) {
@@ -409,21 +494,60 @@ public class HostTab extends APIAccessor {
 			return index;
 		}
 
-        private boolean checkIp(String ip, TableLayout table, int errorIndex) {
+        private View checkName(String name, int errorIndex) {
+            if (nameError != null) { // We had a previous IP error, delete the display
+                table.removeView(nameError);
+                added.remove(nameError);
+            }
+            if (name.equals("")) { // Don't allow no-names
+                // The given IP was invalid, throw an error
+                TextView error = new TextView(controller);
+                error.setText("You must provide a device name");
+                error.setTextColor(Color.RED);
+                error.setGravity(Gravity.RIGHT);
+                table.addView(error, errorIndex);
+                added.add(error);
+                return error;
+            }
+            return null;
+        }
+
+        private View checkIp(String ip, int errorIndex) {
+            if (ipError != null) { // We had a previous IP error, delete the display
+                table.removeView(ipError);
+                added.remove(ipError);
+            }
             InetAddressValidator validator = new InetAddressValidator();
             if (!validator.isValidInet4Address(ip)) {
                 // The given IP was invalid, throw an error
                 TextView error = new TextView(controller);
-                error.setText(ip + " is not a valid IPv4 Address");
+                error.setText("\"" + ip + "\" is not a valid IPv4 Address");
                 error.setTextColor(Color.RED);
+                error.setGravity(Gravity.RIGHT);
                 table.addView(error, errorIndex);
-                return false;
+                added.add(error);
+                return error;
             }
-            return true;
+            return null;
         }
 
-        private boolean checkMac(String mac) {
-            return true;
+        private View checkMac(String mac, int errorIndex) {
+            if (macError != null) { // We had a previous MAC error, delete the display
+                table.removeView(macError);
+                added.remove(macError);
+            }
+            Pattern p = Pattern.compile("^(([a-fA-F0-9]){2}[:]){5}([a-fA-F0-9]){2}$");
+            Matcher m = p.matcher(mac);
+            if (!m.find()) {
+                TextView error = new TextView(controller);
+                error.setText("\"" + mac + "\" is not a valid MAC Address");
+                error.setTextColor(Color.RED);
+                error.setGravity(Gravity.RIGHT);
+                table.addView(error, errorIndex);
+                added.add(error);
+                return error;
+            }
+            return null;
         }
 	}
 }

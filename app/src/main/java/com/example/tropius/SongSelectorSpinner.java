@@ -1,6 +1,7 @@
 package com.example.tropius;
 
 import android.app.Activity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.AdapterView;
@@ -34,7 +35,7 @@ public class SongSelectorSpinner {
 	private ArrayList<String> albums;
 	private ArrayList<String> songs;
 	// A dictionary mapping the spinner name to the row that was added
-	private HashMap<String, TableRow> added;
+	private ArrayList<View> added;
 	// The parameters specifying what to draw the spinners on and where to start
 	private TableLayout table;
 	private int startIndex;
@@ -42,8 +43,7 @@ public class SongSelectorSpinner {
 	private String selected[]; // In accordance with the "type" constants as indexes, indexes are selected text
 	private int mostSignificant; // In accordance with the "type" constants
 	// Values that exist to make sure the spinners only repopulate when necessary
-	private boolean inProgress;
-	
+
 	// Some constant values used for clarity
 	private static final String ARTIST_DEFAULT = "Select an Artist:";
 	private static final String ALBUM_DEFAULT = "Select an Album:";
@@ -57,7 +57,8 @@ public class SongSelectorSpinner {
 	private final TableRow.LayoutParams spinnerParams = new TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, (float)0.55);
 	
 	
-	public SongSelectorSpinner(Activity controller, JSONObject library, TableLayout table, int startIndex) {
+	public SongSelectorSpinner(Activity controller, JSONObject library, TableLayout table, int startIndex,
+                               ArrayList<View> additions) {
 		this.controller = controller;
 		this.library = library;
 		this.table = table;
@@ -74,8 +75,7 @@ public class SongSelectorSpinner {
 		artists = new ArrayList<String>();
 		albums = new ArrayList<String>();
 		songs = new ArrayList<String>();
-		added = new HashMap<String, TableRow>();
-		inProgress = false;
+		added = additions;
 		initLibrary();
 		initSpinners();
 	}
@@ -119,7 +119,9 @@ public class SongSelectorSpinner {
 				artists);
 		artistSpinner.setAdapter(artistAdapter);
 		artistSpinner.setLayoutParams(spinnerParams);
-		artistSpinner.setOnItemSelectedListener(new ArtistSpinnerListener());
+        ArtistSpinnerListener artistListener = new ArtistSpinnerListener();
+		artistSpinner.setOnItemSelectedListener(artistListener);
+        artistSpinner.setOnTouchListener(artistListener);
 		// Create the album spinner
 		ArrayAdapter<String> albumAdapter 
 		= new ArrayAdapter<String>(controller,
@@ -127,7 +129,9 @@ public class SongSelectorSpinner {
 				albums);
 		albumSpinner.setAdapter(albumAdapter);
 		albumSpinner.setLayoutParams(spinnerParams);
-		albumSpinner.setOnItemSelectedListener(new AlbumSpinnerListener());
+        AlbumSpinnerListener albumListener = new AlbumSpinnerListener();
+		albumSpinner.setOnItemSelectedListener(albumListener);
+        albumSpinner.setOnTouchListener(albumListener);
 		// Create the song spinner
 		ArrayAdapter<String> songAdapter 
 		= new ArrayAdapter<String>(controller,
@@ -135,7 +139,9 @@ public class SongSelectorSpinner {
 				songs);
 		songSpinner.setAdapter(songAdapter);
 		songSpinner.setLayoutParams(spinnerParams);
-		songSpinner.setOnItemSelectedListener(new SongSpinnerListener());
+        SongSpinnerListener songListener = new SongSpinnerListener();
+		songSpinner.setOnItemSelectedListener(songListener);
+        songSpinner.setOnTouchListener(songListener);
 	}
 	
 	public void drawSpinners() {
@@ -163,15 +169,15 @@ public class SongSelectorSpinner {
 		songRow.addView(songText);
 		songRow.addView(songSpinner);
 		table.addView(artistRow, startIndex);
-		added.put("artist", artistRow);
+		added.add(artistRow);
 		table.addView(albumRow, startIndex + 1);
-		added.put("album", albumRow);
+		added.add(albumRow);
 		table.addView(songRow, startIndex + 2);
-		added.put("song", songRow);
+		added.add(songRow);
 	}
 	
-	private int repopulate() {
-		int index = 0;
+	private int[] repopulate() {
+        int index[] = {0, 0, 0};
 		switch (mostSignificant) {
 		case DEFAULT_TYPE:
 				initLibrary();
@@ -180,18 +186,17 @@ public class SongSelectorSpinner {
 				index = repopulateByArtist();
 				break;
 		case ALBUM_TYPE:
-				repopulateByAlbum();
+				index = repopulateByAlbum();
 				break;
 		case SONG_TYPE:
-				repopulateBySong();
+				index = repopulateBySong();
 				break;
 		}
 		return index;
 	}
 	
-	private int repopulateByArtist() {
+	private int[] repopulateByArtist() {
 		// Clear out the album and song lists before repopulating
-		System.out.println("Repopulating by artist");
 		albums = new ArrayList<String>();
 		songs = new ArrayList<String>();
 		albums.add(ALBUM_DEFAULT); songs.add(SONG_DEFAULT);
@@ -210,11 +215,11 @@ public class SongSelectorSpinner {
 		} catch (JSONException e) {
 			// TODO error handling
 		}
-		return artists.indexOf(selected[ARTIST_TYPE]);
+        int ret[] = {artists.indexOf(selected[ARTIST_TYPE]), 0, 0};
+		return ret;
 	}
 	
-	private void repopulateByAlbum() {
-		System.out.println("Repopulating by album");
+	private int[] repopulateByAlbum() {
 		// Clear out the spinner lists before repopulating
 		artists = new ArrayList<String>();
 		albums = new ArrayList<String>();
@@ -240,7 +245,7 @@ public class SongSelectorSpinner {
 						songs.add(songList.getString(i));
 					}
 				}
-				if (currentAlbum.equals(selected[ALBUM_TYPE])) { // We got it, add the info and get out
+				if (albumsByArtist.contains((selected[ALBUM_TYPE]))) { // We got it, add the info and get out
 					albums = albumsByArtist;
 					artists.add(currentArtist);
 					break;
@@ -249,10 +254,11 @@ public class SongSelectorSpinner {
 		} catch (JSONException e) {
 			// TODO error handling
 		}
+        int ret[] = {1, albums.indexOf(selected[ALBUM_TYPE]), 0};
+        return ret;
 	}
 	
-	private void repopulateBySong() {
-		System.out.println("Repopulating by song");
+	private int[] repopulateBySong() {
 		// Clear out the spinner lists before repopulating
 		artists = new ArrayList<String>();
 		albums = new ArrayList<String>();
@@ -270,31 +276,31 @@ public class SongSelectorSpinner {
 				Iterator<String> albumIterator = artistJSON.keys();
 				while (albumIterator.hasNext()) {
 					currentAlbum = albumIterator.next();
-					ArrayList<String> songsByArtist = new ArrayList<String>(); // Temp array in case its the right song
-					songsByArtist.add(SONG_DEFAULT);
+					ArrayList<String> songsOnAlbum = new ArrayList<String>(); // Temp array in case its the right song
+					songsOnAlbum.add(SONG_DEFAULT);
 					JSONArray songList = artistJSON.getJSONArray(currentAlbum);
 					for (int i = 0; i < songList.length(); i++) {
 						currentSong = songList.getString(i);
-						songsByArtist.add(currentSong);
+						songsOnAlbum.add(currentSong);
 						if (currentSong.equals(selected[SONG_TYPE])) found = true;
 					}
 					if (found) { // We got it, set the list values and clean up
 						artists.add(currentArtist);
 						albums.add(currentAlbum);
-						songs = songsByArtist;
+						songs = songsOnAlbum;
 						break;
 					}
 				}
+                if (found) break;
 			}
 		} catch (JSONException e) {
 			// TODO error handling
 		}
+        int ret[] = {1, 1, songs.indexOf(selected[SONG_TYPE])};
+        return ret;
 	}
 	
 	private void redraw(int selectedArtist, int selectedAlbum, int selectedSong) {
-		//System.out.println("Artist list: " + artists);
-		//System.out.println("Album list: " + albums);
-		//System.out.println("Song list: " + songs);
 		// create the new array adapters
 		ArrayAdapter<String> artistAdapter 
 		= new ArrayAdapter<String>(controller,
@@ -309,16 +315,19 @@ public class SongSelectorSpinner {
 				android.R.layout.simple_spinner_dropdown_item,
 				songs);
 		// Set the adapters to each spinner
+        songSpinner.setAdapter(songAdapter);
+        songSpinner.setSelection(selectedSong);
+        selected[SONG_TYPE] = songSpinner.getItemAtPosition(selectedSong).toString();
+        albumSpinner.setAdapter(albumAdapter);
+        albumSpinner.setSelection(selectedAlbum);
+        selected[ALBUM_TYPE] = albumSpinner.getItemAtPosition(selectedAlbum).toString();
 		artistSpinner.setAdapter(artistAdapter);
-		artistSpinner.setSelection(selectedArtist);
-		albumSpinner.setAdapter(albumAdapter);
-		albumSpinner.setSelection(selectedAlbum);
-		songSpinner.setAdapter(songAdapter);
-		songSpinner.setSelection(selectedSong);
+        artistSpinner.setSelection(selectedArtist);
+        selected[ARTIST_TYPE] = artistSpinner.getItemAtPosition(selectedArtist).toString();
 		// Let the spinners know they changed
+        songAdapter.notifyDataSetChanged();
+        albumAdapter.notifyDataSetChanged();
 		artistAdapter.notifyDataSetChanged();
-		albumAdapter.notifyDataSetChanged();
-		songAdapter.notifyDataSetChanged();
 	}
 	
 	private void recalculateMostSignificant() {
@@ -332,30 +341,47 @@ public class SongSelectorSpinner {
 			mostSignificant = DEFAULT_TYPE; // Nothing selected
 		}
 	}
+
+    public JSONObject getSelected() {
+        // TODO display error message if spinners aren't filled out
+        JSONObject args = new JSONObject();
+        try {
+            args.put("title", selected[SONG_TYPE]);
+            args.put("album", selected[ALBUM_TYPE]);
+            args.put("artist", selected[ARTIST_TYPE]);
+            return args;
+        } catch (JSONException ex) {
+            // TODO error handling
+        }
+        return null; // This should never happen
+    }
 	
-	private class ArtistSpinnerListener implements OnItemSelectedListener {
-		
+	private class ArtistSpinnerListener implements OnItemSelectedListener, View.OnTouchListener {
+
+        boolean userSelect = false;
+
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            userSelect = true;
+            return false;
+        }
+
 		@Override
 		public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-			if (mostSignificant > ARTIST_TYPE) return; // Leave it to the more significant spinners
-			if (inProgress) return; // Don't redraw if we're already redrawing
-			String spinnerText = parent.getItemAtPosition(position).toString();
-			if (spinnerText.equals(selected[ARTIST_TYPE])) return; // Prevent infinite looping
-			inProgress = true;
-			System.out.println("Initiating lockdown");
-			System.out.println("New artist selected! Old artist = " + selected[ARTIST_TYPE] + " new artist = " + spinnerText);
-			mostSignificant = ARTIST_TYPE;
-			if (spinnerText.equals(ARTIST_DEFAULT)) { // Nothing is selected anymore
-				mostSignificant = 0;
-				selected[ARTIST_TYPE] = ARTIST_DEFAULT;
-			} else { // Recalculate the album and song lists for the selected artist
-				selected[ARTIST_TYPE] = spinnerText;
-			}
-			System.out.println("Artist calling repopulate");
-			int index = repopulate();
-			redraw(index, 0, 0);
-			inProgress = false;
-			System.out.println("Exiting lockdown");
+            if (!userSelect) return; // Only update things if changed by the user
+            String spinnerText = parent.getItemAtPosition(position).toString();
+            if (spinnerText.equals(selected[ARTIST_TYPE])) return; // Prevent infinite looping
+            if (spinnerText.equals(ARTIST_DEFAULT)) { // We've dropped all specifications
+                mostSignificant = DEFAULT_TYPE;
+                selected[ARTIST_TYPE] = ARTIST_DEFAULT;
+                int indexes[] = repopulate(); // If nothing is selected, repopulate just re-inits the spinners
+                redraw(indexes[ARTIST_TYPE], indexes[ALBUM_TYPE], indexes[SONG_TYPE]);
+            } else if (mostSignificant <= ARTIST_TYPE) { // Don't let the artist have sway over song/album
+                mostSignificant = ARTIST_TYPE;
+                selected[ARTIST_TYPE] = spinnerText;
+                int indexes[] = repopulate();
+                redraw(indexes[ARTIST_TYPE], indexes[ALBUM_TYPE], indexes[SONG_TYPE]);
+            }
 		}
 		
 		@Override
@@ -364,23 +390,33 @@ public class SongSelectorSpinner {
 		}
 	}
 	
-	private class AlbumSpinnerListener implements OnItemSelectedListener {
+	private class AlbumSpinnerListener implements OnItemSelectedListener, View.OnTouchListener {
+
+        boolean userSelect = false;
+
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            userSelect = true;
+            return false;
+        }
+
 		@Override
 		public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-			if (mostSignificant > ALBUM_TYPE) return; // Leave it to the more significant spinners
-			if (inProgress) return; // Don't redraw if we're already redrawing
-			String spinnerText = parent.getItemAtPosition(position).toString();
-			if (spinnerText.equals(selected[ARTIST_TYPE])) return; // Prevent infinite looping
-			mostSignificant = ALBUM_TYPE;
-			if (spinnerText.equals(ALBUM_DEFAULT)) {
+            if (!userSelect) return; // Only let the user initiate an update
+            String spinnerText = parent.getItemAtPosition(position).toString();
+            if (spinnerText.equals(selected[ALBUM_TYPE])) return; // Prevent infinite looping
+			if (spinnerText.equals(ALBUM_DEFAULT)) { // Give the Artist the most influence and clear the song
+                selected[SONG_TYPE] = SONG_DEFAULT; // We need to make sure we don't recalculate song as most significant
+                selected[ALBUM_TYPE] = ALBUM_DEFAULT;
 				recalculateMostSignificant();
-				selected[ALBUM_TYPE] = ALBUM_DEFAULT;
-			} else {
+                int indexes[] = repopulate();
+                redraw(indexes[ARTIST_TYPE], indexes[ALBUM_TYPE], indexes[SONG_TYPE]);
+			} else if (mostSignificant <= ALBUM_TYPE) {
+                mostSignificant = ALBUM_TYPE;
 				selected[ALBUM_TYPE] = spinnerText;
+                int indexes[] = repopulate();
+                redraw(indexes[ARTIST_TYPE], indexes[ALBUM_TYPE], indexes[SONG_TYPE]);
 			}
-			System.out.println("Album calling repopulate");
-			repopulate();
-			redraw(0, 0, 0);
 		}
 		
 		@Override
@@ -389,22 +425,30 @@ public class SongSelectorSpinner {
 		}
 	}
 	
-	private class SongSpinnerListener implements OnItemSelectedListener {
+	private class SongSpinnerListener implements OnItemSelectedListener, View.OnTouchListener {
+
+        boolean userSelect = false;
+
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            userSelect = true;
+            return false;
+        }
+
 		@Override
 		public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-			if (inProgress) return; // Don't redraw if we're already redrawing
+			if (!userSelect) return; // Only let the user initiate an update
 			String spinnerText = parent.getItemAtPosition(position).toString();
 			if (spinnerText.equals(selected[SONG_TYPE])) return; // Prevent infinite looping
-			mostSignificant = SONG_TYPE; // Song is ALWAYS the most significant if selected
 			if (spinnerText.equals(SONG_DEFAULT)) {
+                selected[SONG_TYPE] = SONG_DEFAULT;
 				recalculateMostSignificant();
-				selected[SONG_TYPE] = SONG_DEFAULT;
 			} else {
+                mostSignificant = SONG_TYPE; // Song is ALWAYS the most significant if selected
 				selected[SONG_TYPE] = spinnerText;
 			}
-			System.out.println("Song calling repopulate");
-			repopulate();
-			redraw(0, 0, 0);
+            int indexes[] = repopulate();
+            redraw(indexes[ARTIST_TYPE], indexes[ALBUM_TYPE], indexes[SONG_TYPE]);
 		}
 		
 		@Override
